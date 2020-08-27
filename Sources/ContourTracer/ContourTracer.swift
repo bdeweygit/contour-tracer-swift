@@ -1,14 +1,15 @@
 public typealias PixelPoint = (x: Int, y: Int)
 public typealias ImageSize = (width: Int, height: Int)
 
-public struct ContourTracer {
-    private typealias Tracer = (pixel: PixelPoint, absoluteDirection: AbsoluteDirection)
+private struct Tracer {
+    var pixel: PixelPoint
+    var absoluteDirection: AbsoluteDirection
 
-    private enum AbsoluteDirection: Int, CaseIterable {
+    enum AbsoluteDirection: Int, CaseIterable {
         case north = 0, northEast, east, southEast, south, southWest, west, northWest
     }
 
-    private enum Direction: Int {
+    enum Direction: Int {
         case front = 0, frontRight, right, rightRear, rear, leftRear, left, frontLeft
     }
 
@@ -23,30 +24,24 @@ public struct ContourTracer {
         AbsoluteDirection.northWest: { (p: PixelPoint) -> PixelPoint in (p.x + 1, p.y - 1)},
     ]
 
-    private func absoluteDirectionAfterRotatingToThe(_ direction: Direction, of tracer: Tracer) -> AbsoluteDirection {
-        let index = (tracer.absoluteDirection.rawValue + direction.rawValue) % AbsoluteDirection.allCases.count
+    private func absoluteDirectionAfterRotatingToThe(_ direction: Direction) -> AbsoluteDirection {
+        let index = (self.absoluteDirection.rawValue + direction.rawValue) % AbsoluteDirection.allCases.count
         return AbsoluteDirection.allCases[index]
     }
 
-    private func pixelToThe(_ direction: Direction, of tracer: Tracer) -> PixelPoint {
-        let absDir = self.absoluteDirectionAfterRotatingToThe(direction, of: tracer)
-        return self.pixelAtAbsoluteDirection[absDir]!(tracer.pixel)
+    func pixelToThe(_ direction: Direction) -> PixelPoint {
+        let absDir = self.absoluteDirectionAfterRotatingToThe(direction)
+        return self.pixelAtAbsoluteDirection[absDir]!(self.pixel)
     }
 
-    private func move(_ tracer: inout Tracer, toThe dir: Direction?, andRotateToThe rot: Direction?) {
-        let pixel = dir == nil ? tracer.pixel : self.pixelToThe(dir!, of: tracer)
-        let absoluteDirection = rot == nil ? tracer.absoluteDirection : self.absoluteDirectionAfterRotatingToThe(rot!, of: tracer)
-        tracer = (pixel, absoluteDirection)
+    mutating func moveToThe(_ dir: Direction?, andRotateToThe rot: Direction?) {
+        self.pixel = dir == nil ? self.pixel : self.pixelToThe(dir!)
+        self.absoluteDirection = rot == nil ? self.absoluteDirection : self.absoluteDirectionAfterRotatingToThe(rot!)
     }
 
-    private func add(_ pixel: PixelPoint, to traced: inout [String : Bool]) {
-        traced["\(pixel.x).\(pixel.y)"] = true
-    }
+}
 
-    private func pixelAt(_ pixel: PixelPoint, was traced: [String : Bool]) -> Bool {
-        return traced["\(pixel.x).\(pixel.y)"] ?? false
-    }
-
+public struct ContourTracer {
     private func contourStartsAt(_ pixel: PixelPoint, _ isActiveAt: (PixelPoint) -> Bool) -> Bool {
         let isActive = isActiveAt(pixel)
         if isActive {
@@ -65,69 +60,70 @@ public struct ContourTracer {
     }
 
     public func trace(onImageOfSize size: ImageSize, _ isActiveAt: (PixelPoint) -> Bool) {
-        var traced = [String : Bool]()
-        let startAbsoluteDirection = AbsoluteDirection.west // <- why?
+        let minimumCapacity = (size.width + (size.height - 2)) * 2 // outline of image
+        var traced = Set<String>(minimumCapacity: minimumCapacity)
+        let startAbsoluteDirection = Tracer.AbsoluteDirection.west // <- why?
 
         for y in 0..<size.height {
             for x in 0..<size.width {
                 // skip if pixel was already traced
-                if self.pixelAt((x, y), was: traced) { continue }
+                if traced.contains((x, y)) { continue }
 
                 if self.contourStartsAt((x, y), isActiveAt) { // start contour tracing
                     var contour = [PixelPoint]()
-                    var tracer: Tracer = (pixel: (x, y), absoluteDirection: startAbsoluteDirection)
-                    self.add(tracer.pixel, to: &traced)
+                    var tracer = Tracer(pixel: (x, y), absoluteDirection: startAbsoluteDirection)
+                    traced.insert(tracer.pixel)
 
                     repeat {
-                        if isActiveAt(self.pixelToThe(.leftRear, of: tracer)) {
-                            if isActiveAt(self.pixelToThe(.left, of: tracer)) {
-                                self.move(&tracer, toThe: .left, andRotateToThe: .left)
-                                self.add(tracer.pixel, to: &traced)
+                        if isActiveAt(tracer.pixelToThe(.leftRear)) {
+                            if isActiveAt(tracer.pixelToThe(.left)) {
+                                tracer.moveToThe(.left, andRotateToThe: .left)
+                                traced.insert(tracer.pixel)
 
                                 contour.append(tracer.pixel)
 
-                                self.move(&tracer, toThe: .left, andRotateToThe: .left)
-                                self.add(tracer.pixel, to: &traced)
+                                tracer.moveToThe(.left, andRotateToThe: .left)
+                                traced.insert(tracer.pixel)
                             } else {
                                 contour.append(tracer.pixel)
 
-                                self.move(&tracer, toThe: .leftRear, andRotateToThe: .rear)
-                                self.add(tracer.pixel, to: &traced)
+                                tracer.moveToThe(.leftRear, andRotateToThe: .rear)
+                                traced.insert(tracer.pixel)
 
                                 contour.append(tracer.pixel)
                             }
                         } else {
-                            if isActiveAt(self.pixelToThe(.left, of: tracer)) {
-                                self.move(&tracer, toThe: .left, andRotateToThe: .left)
-                                self.add(tracer.pixel, to: &traced)
+                            if isActiveAt(tracer.pixelToThe(.left)) {
+                                tracer.moveToThe(.left, andRotateToThe: .left)
+                                traced.insert(tracer.pixel)
 
                                 contour.append(tracer.pixel)
                             } else {
                                 contour.append(tracer.pixel)
                             }
                         }
-                        if isActiveAt(self.pixelToThe(.frontLeft, of: tracer)) {
-                            if isActiveAt(self.pixelToThe(.front, of: tracer)) {
-                                self.move(&tracer, toThe: .front, andRotateToThe: .left)
-                                self.add(tracer.pixel, to: &traced)
+                        if isActiveAt(tracer.pixelToThe(.frontLeft)) {
+                            if isActiveAt(tracer.pixelToThe(.front)) {
+                                tracer.moveToThe(.front, andRotateToThe: .left)
+                                traced.insert(tracer.pixel)
 
                                 contour.append(tracer.pixel)
 
-                                self.move(&tracer, toThe: .front, andRotateToThe: .right)
-                                self.add(tracer.pixel, to: &traced)
+                                tracer.moveToThe(.front, andRotateToThe: .right)
+                                traced.insert(tracer.pixel)
                             } else {
                                 contour.append(tracer.pixel)
 
-                                self.move(&tracer, toThe: .frontLeft, andRotateToThe: nil)
-                                self.add(tracer.pixel, to: &traced)
+                                tracer.moveToThe(.frontLeft, andRotateToThe: nil)
+                                traced.insert(tracer.pixel)
 
                                 contour.append(tracer.pixel)
                             }
-                        } else if isActiveAt(self.pixelToThe(.front, of: tracer)) {
-                            self.move(&tracer, toThe: .front, andRotateToThe: .right)
-                            self.add(tracer.pixel, to: &traced)
+                        } else if isActiveAt(tracer.pixelToThe(.front)) {
+                            tracer.moveToThe(.front, andRotateToThe: .right)
+                            traced.insert(tracer.pixel)
                         } else {
-                            self.move(&tracer, toThe: nil, andRotateToThe: .rear)
+                            tracer.moveToThe(nil, andRotateToThe: .rear)
 
                             contour.append(tracer.pixel)
                         }
@@ -142,4 +138,13 @@ public struct ContourTracer {
     }
 }
 
+private extension Set where Element == String {
+    func contains(_ pixel: PixelPoint) -> Bool {
+        return self.contains("\(pixel.x).\(pixel.y)")
+    }
+
+    mutating func insert(_ pixel: PixelPoint) {
+        self.insert("\(pixel.x).\(pixel.y)")
+    }
+}
 
