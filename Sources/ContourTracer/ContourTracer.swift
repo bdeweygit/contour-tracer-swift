@@ -1,7 +1,7 @@
 public typealias PixelPoint = (x: Int, y: Int)
 public typealias ImageSize = (width: Int, height: Int)
 
-private struct Tracer {
+struct Tracer {
     var pixel: PixelPoint
     var absoluteDirection: AbsoluteDirection
 
@@ -41,7 +41,7 @@ private struct Tracer {
 
 }
 
-private func contourStartsAt(_ pixel: PixelPoint, _ isActiveAt: (PixelPoint) -> Bool) -> Bool {
+func contourStartsAt(_ pixel: PixelPoint, _ isActiveAt: (PixelPoint) -> Bool) -> Bool {
     let isActive = isActiveAt(pixel)
     if isActive {
         let (x, y) = pixel
@@ -136,7 +136,7 @@ public func traceContoursOnImageOfSize(_ size: ImageSize, _ isActiveAt: (PixelPo
     }
 }
 
-private extension Set where Element == String {
+extension Set where Element == String {
     func contains(_ pixel: PixelPoint) -> Bool {
         return self.contains("\(pixel.x).\(pixel.y)")
     }
