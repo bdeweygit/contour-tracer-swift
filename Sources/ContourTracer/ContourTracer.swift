@@ -58,19 +58,22 @@ func contourStartsAt(_ pixel: PixelPoint, _ isActiveAt: (PixelPoint) -> Bool) ->
     return false
 }
 
-public func traceContoursOnImageOfSize(_ size: ImageSize, _ isActiveAt: (PixelPoint) -> Bool) {
+public func traceContoursInImageOfSize(_ size: ImageSize, isActiveAt: (PixelPoint) -> Bool, shouldScanRow: (Int) -> Bool, shouldContinueAfterTracingContour: ([PixelPoint]) -> Bool) {
     let minimumCapacity = (size.width + (size.height - 2)) * 2 // outline of image
     var traced = Set<String>(minimumCapacity: minimumCapacity)
     let startAbsoluteDirection = Tracer.AbsoluteDirection.west // <- why?
 
-    for y in 0..<size.height {
-        for x in 0..<size.width {
-            // skip if pixel was already traced
-            if traced.contains((x, y)) { continue }
+    for row in 0..<size.height {
+        if !shouldScanRow(row) { continue }
+        for col in 0..<size.width {
+            let startPixel: PixelPoint = (x: col, y: row)
 
-            if contourStartsAt((x, y), isActiveAt) { // start contour tracing
+            // skip if pixel was already traced
+            if traced.contains(startPixel) { continue }
+
+            if contourStartsAt(startPixel, isActiveAt) { // start contour tracing
                 var contour = [PixelPoint]()
-                var tracer = Tracer(pixel: (x, y), absoluteDirection: startAbsoluteDirection)
+                var tracer = Tracer(pixel: startPixel, absoluteDirection: startAbsoluteDirection)
                 traced.insert(tracer.pixel)
 
                 repeat {
@@ -126,11 +129,9 @@ public func traceContoursOnImageOfSize(_ size: ImageSize, _ isActiveAt: (PixelPo
 
                         contour.append(tracer.pixel)
                     }
-                } while (tracer.pixel.x != x || tracer.pixel.y != y || tracer.absoluteDirection != startAbsoluteDirection)
+                } while (tracer.pixel.x != startPixel.x || tracer.pixel.y != startPixel.y || tracer.absoluteDirection != startAbsoluteDirection)
 
-                // do something with contour
-                //
-                //
+                if !shouldContinueAfterTracingContour(contour) { return }
             }
         }
     }
