@@ -34,9 +34,9 @@ struct Tracer {
         return self.pixelAtAbsoluteDirection[absDir]!(self.pixel)
     }
 
-    mutating func moveToThe(_ dir: Direction?, andRotateToThe rot: Direction?) {
-        self.pixel = dir == nil ? self.pixel : self.pixelToThe(dir!)
-        self.absoluteDirection = rot == nil ? self.absoluteDirection : self.absoluteDirectionAfterRotatingToThe(rot!)
+    mutating func moveToThe(_ direction: Direction?, andRotateToThe rotation: Direction?) {
+        self.pixel = direction == nil ? self.pixel : self.pixelToThe(direction!)
+        self.absoluteDirection = rotation == nil ? self.absoluteDirection : self.absoluteDirectionAfterRotatingToThe(rotation!)
     }
 
 }
@@ -50,11 +50,11 @@ func contourStartsAt(_ pixel: PixelPoint, _ isActiveAt: (PixelPoint) -> Bool) ->
             let isLeftRearInactive = !isActiveAt((x - 1, y + 1))
             if isLeftRearInactive {
                 return true
-            } // left rear is active
-            return isActiveAt((x, y + 1)) // is left white?
-        } // it's rear is active
+            } // left rear pixel is active
+            return isActiveAt((x, y + 1)) // is left pixel white?
+        } // rear pixel is active
         return false
-    } // it's inactive
+    } // pixel is inactive
     return false
 }
 
@@ -146,4 +146,3 @@ extension Set where Element == String {
         self.insert("\(pixel.x).\(pixel.y)")
     }
 }
-
