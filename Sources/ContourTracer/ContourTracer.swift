@@ -83,13 +83,12 @@ public func traceInImageOfSize(_ size: ImageSize, isActiveAt: (PixelPoint) -> Bo
     var history = Set<String>(minimumCapacity: perimeter)
 
     for row in 0..<size.height {
-        // verify row can be scanned
+        // verify row should be scanned
         if shouldScanRow(row) {
             for col in 0..<size.width {
                 // verify pixel is active, was not in a previous trace, and is a valid starting pixel
                 let pixel: PixelPoint = (x: col, y: row)
                 if isActiveAt(pixel) && !history.contains(pixel) && !isActiveAt((pixel.x - 1, pixel.y)) && (!isActiveAt((pixel.x - 1, pixel.y + 1)) || isActiveAt((pixel.x, pixel.y + 1))) {
-
                     // start tracing
                     var tracer = Tracer(pixel, &history)
                     while true {
