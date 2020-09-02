@@ -77,7 +77,7 @@ struct Tracer {
 }
 
 public func traceInImageOfSize(_ size: ImageSize, isActiveAt: (PixelPoint) -> Bool, shouldScanRow: (Int) -> Bool, shouldContinueAfterTracing: (Trace) -> Bool) {
-    if size.width <= 0 || size.height <= 0 { return }
+    guard size.width > 0 && size.height > 0 else { return }
 
     let perimeter = (size.width + (size.height - 2)) * 2
     var history = Set<String>(minimumCapacity: perimeter)
@@ -116,7 +116,7 @@ public func traceInImageOfSize(_ size: ImageSize, isActiveAt: (PixelPoint) -> Bo
                         }
 
                         if let trace = tracer.trace { // finished tracing
-                            if !shouldContinueAfterTracing(trace) { return }
+                            guard shouldContinueAfterTracing(trace) else { return }
                             break
                         }
                     }
