@@ -27,7 +27,7 @@ struct Tracer {
                 return nil
             }
 
-            let area = Double(abs(self.sumArea + ((last.x * first.y) - (last.y * first.x)))) / 2
+            let area = abs(Double(self.sumArea + ((last.x * first.y) - (last.y * first.x))) / 2)
             let centroidX = Double(self.sumX) / Double(self.contour.count)
             let centroidY = Double(self.sumY) / Double(self.contour.count)
             return (self.contour, (centroidX, centroidY), area)
@@ -63,16 +63,16 @@ struct Tracer {
     }
 
     private mutating func updateTrace(_ history: inout Set<String>) {
-        if !history.contains(self.pixel) {
-            if let last = self.contour.last {
-                self.sumArea += (last.x * self.pixel.y) - (last.y * self.pixel.x)
-            }
-            self.sumX += self.pixel.x
-            self.sumY += self.pixel.y
+        guard !history.contains(self.pixel) else { return }
 
-            self.contour.append(pixel)
-            history.insert(pixel)
+        self.sumX += self.pixel.x
+        self.sumY += self.pixel.y
+        if let last = self.contour.last {
+            self.sumArea += (last.x * self.pixel.y) - (last.y * self.pixel.x)
         }
+
+        self.contour.append(pixel)
+        history.insert(pixel)
     }
 }
 
