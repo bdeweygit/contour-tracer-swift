@@ -11,19 +11,19 @@ struct Tracer {
     }
 
     private let pixelAtAbsoluteDirection = [
-        AbsoluteDirection.north: { (p: PixelPoint) -> PixelPoint in (p.x, p.y - 1)},
-        AbsoluteDirection.northEast: { (p: PixelPoint) -> PixelPoint in (p.x - 1, p.y - 1)},
-        AbsoluteDirection.east: { (p: PixelPoint) -> PixelPoint in (p.x - 1, p.y)},
-        AbsoluteDirection.southEast: { (p: PixelPoint) -> PixelPoint in (p.x - 1, p.y + 1)},
-        AbsoluteDirection.south: { (p: PixelPoint) -> PixelPoint in (p.x, p.y + 1)},
-        AbsoluteDirection.southWest: { (p: PixelPoint) -> PixelPoint in (p.x + 1, p.y + 1)},
-        AbsoluteDirection.west: { (p: PixelPoint) -> PixelPoint in (p.x + 1, p.y)},
-        AbsoluteDirection.northWest: { (p: PixelPoint) -> PixelPoint in (p.x + 1, p.y - 1)},
+        AbsoluteDirection.east: { (p: PixelPoint) -> PixelPoint in (p.x - 1, p.y) },
+        AbsoluteDirection.west: { (p: PixelPoint) -> PixelPoint in (p.x + 1, p.y) },
+        AbsoluteDirection.north: { (p: PixelPoint) -> PixelPoint in (p.x, p.y - 1) },
+        AbsoluteDirection.south: { (p: PixelPoint) -> PixelPoint in (p.x, p.y + 1) },
+        AbsoluteDirection.northEast: { (p: PixelPoint) -> PixelPoint in (p.x - 1, p.y - 1) },
+        AbsoluteDirection.southWest: { (p: PixelPoint) -> PixelPoint in (p.x + 1, p.y + 1) },
+        AbsoluteDirection.northWest: { (p: PixelPoint) -> PixelPoint in (p.x + 1, p.y - 1) },
+        AbsoluteDirection.southEast: { (p: PixelPoint) -> PixelPoint in (p.x - 1, p.y + 1) },
     ]
 
     var trace: Trace? {
         get {
-            guard let first = contour.first, let last = contour.last, (self.pixel.x == first.x && self.pixel.y == first.y && self.absoluteDirection == .west) else {
+            guard let first = contour.first, let last = contour.last, self.pixel.x == first.x && self.pixel.y == first.y && self.absoluteDirection == .west else {
                 return nil
             }
 
@@ -64,15 +64,12 @@ struct Tracer {
 
     private mutating func updateTrace(_ history: inout Set<String>) {
         guard !history.contains(self.pixel) else { return }
+        defer { history.insert(pixel) }
 
         self.sumX += self.pixel.x
         self.sumY += self.pixel.y
-        if let last = self.contour.last {
-            self.sumArea += (last.x * self.pixel.y) - (last.y * self.pixel.x)
-        }
-
+        if let last = self.contour.last { self.sumArea += (last.x * self.pixel.y) - (last.y * self.pixel.x) }
         self.contour.append(pixel)
-        history.insert(pixel)
     }
 }
 
