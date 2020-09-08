@@ -42,7 +42,7 @@ struct Tracer {
     private var tile: Tile, compass = Compass.west
     private var tiles = [Tile](), sumX = 0, sumY = 0, sumArea = 0
 
-    init?(_ tile: Tile, _ canTrace: (Tile) -> Bool, _ history: inout History) {
+    init?(_ tile: Tile, _ canTrace: (Tile) -> Bool, _ history: inout TileSet) {
         self.tile = tile
 
         // verify a contour trace can begin at this tile
@@ -56,7 +56,7 @@ struct Tracer {
         return map(self.tile)
     }
 
-    mutating func move(_ direction: Direction?, andRotate rotation: Direction?, _ history: inout History) {
+    mutating func move(_ direction: Direction?, andRotate rotation: Direction?, _ history: inout TileSet) {
         if let dir = direction {
             self.tile = self.tileAt(dir)
             self.updateContour(&history)
@@ -66,7 +66,7 @@ struct Tracer {
         }
     }
 
-    private mutating func updateContour(_ history: inout History) {
+    private mutating func updateContour(_ history: inout TileSet) {
         guard !history.contains(self.tile) else { return }
         defer { history.insert(self.tile) }
 

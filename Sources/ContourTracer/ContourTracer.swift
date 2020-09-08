@@ -8,7 +8,7 @@ public struct ContourTracer {
         guard size.width > 0 && size.height > 0 else { return }
 
         // record traced tiles to avoid tracing the same contour more than once
-        var history = History()
+        var history = TileSet(idOf: { ($0.y * (size.width - 1)) + $0.x })
 
         // scan the tessellation tiles
         for row in 0..<size.height {
