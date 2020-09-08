@@ -1,28 +1,28 @@
-enum Direction: Int {
-    case front = 0, frontRight, right, rightRear, rear, leftRear, left, frontLeft
-}
-
-fileprivate enum Compass: Int, CaseIterable {
-    case north = 0, northEast, east, southEast, south, southWest, west, northWest
-
-    func rotated(_ direction: Direction) -> Compass {
-        let index = (self.rawValue + direction.rawValue) % Compass.allCases.count
-        return Compass.allCases[index]
-    }
-}
-
-fileprivate let tileAtCompass = [
-    .east: { (t: Tile) -> Tile in (t.x - 1, t.y) },
-    .west: { (t: Tile) -> Tile in (t.x + 1, t.y) },
-    .north: { (t: Tile) -> Tile in (t.x, t.y - 1) },
-    .south: { (t: Tile) -> Tile in (t.x, t.y + 1) },
-    .northEast: { (t: Tile) -> Tile in (t.x - 1, t.y - 1) },
-    .southWest: { (t: Tile) -> Tile in (t.x + 1, t.y + 1) },
-    .northWest: { (t: Tile) -> Tile in (t.x + 1, t.y - 1) },
-    Compass.southEast: { (t: Tile) -> Tile in (t.x - 1, t.y + 1) },
-]
-
 struct Tracer {
+    enum Direction: Int {
+        case front = 0, frontRight, right, rightRear, rear, leftRear, left, frontLeft
+    }
+
+    private enum Compass: Int, CaseIterable {
+        case north = 0, northEast, east, southEast, south, southWest, west, northWest
+
+        func rotated(_ direction: Direction) -> Compass {
+            let index = (self.rawValue + direction.rawValue) % Compass.allCases.count
+            return Compass.allCases[index]
+        }
+    }
+
+    private let tileAtCompass = [
+        .east: { (t: Tile) -> Tile in (t.x - 1, t.y) },
+        .west: { (t: Tile) -> Tile in (t.x + 1, t.y) },
+        .north: { (t: Tile) -> Tile in (t.x, t.y - 1) },
+        .south: { (t: Tile) -> Tile in (t.x, t.y + 1) },
+        .northEast: { (t: Tile) -> Tile in (t.x - 1, t.y - 1) },
+        .southWest: { (t: Tile) -> Tile in (t.x + 1, t.y + 1) },
+        .northWest: { (t: Tile) -> Tile in (t.x + 1, t.y - 1) },
+        Compass.southEast: { (t: Tile) -> Tile in (t.x - 1, t.y + 1) },
+    ]
+
     var contour: Contour? {
         get {
             // verify tracer is on its initial tile and compass
@@ -52,7 +52,7 @@ struct Tracer {
     }
 
     func tileAt(_ direction: Direction) -> Tile {
-        let map = tileAtCompass[self.compass.rotated(direction)]!
+        let map = self.tileAtCompass[self.compass.rotated(direction)]!
         return map(self.tile)
     }
 

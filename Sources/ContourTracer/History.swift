@@ -7,7 +7,7 @@ struct History {
         self.y.insert(tile.y)
     }
 
-    func contains (_ tile: Tile) -> Bool {
+    func contains(_ tile: Tile) -> Bool {
         return self.x.contains(tile.x) && self.y.contains(tile.y)
     }
 }
