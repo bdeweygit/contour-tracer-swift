@@ -24,19 +24,17 @@ struct Tracer {
     ]
 
     var contour: Contour? {
-        get {
-            // verify tracer is on its initial tile and compass
-            guard let first = self.tiles.first, let last = self.tiles.last, self.tile.x == first.x && self.tile.y == first.y && self.compass == .west else {
-                return nil
-            }
-
-            // calculate area and centroid coordinates
-            let area = abs(Double(self.sumArea + ((last.x * first.y) - (last.y * first.x))) / 2)
-            let x = Double(self.sumX) / Double(self.tiles.count)
-            let y = Double(self.sumY) / Double(self.tiles.count)
-
-            return (self.tiles, (x, y), area)
+        // verify tracer is on its initial tile and compass
+        guard let first = self.tiles.first, let last = self.tiles.last, self.tile.x == first.x && self.tile.y == first.y && self.compass == .west else {
+            return nil
         }
+
+        // calculate area and centroid coordinates
+        let area = abs(Double(self.sumArea + ((last.x * first.y) - (last.y * first.x))) / 2)
+        let x = Double(self.sumX) / Double(self.tiles.count)
+        let y = Double(self.sumY) / Double(self.tiles.count)
+
+        return (self.tiles, (x, y), area)
     }
 
     private var tile: Tile, compass = Compass.west
