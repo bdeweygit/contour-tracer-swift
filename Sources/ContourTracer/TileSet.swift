@@ -1,9 +1,13 @@
 struct TileSet {
     var ids = Set<Int>()
-    let idOf: (Tile) -> Int
+    let tessellationWidth: Int
 
-    init(idOf: @escaping (Tile) -> Int) {
-        self.idOf = idOf
+    init(tessellationWidth: Int) {
+        self.tessellationWidth = tessellationWidth
+    }
+
+    private func idOf(_ tile: Tile) -> Int {
+        return (tile.y * self.tessellationWidth) + tile.x
     }
 
     mutating func insert(_ tile: Tile) {
