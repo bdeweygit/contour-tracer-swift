@@ -12,20 +12,24 @@ struct Tracer {
         }
     }
 
-    private let tileAtCompass = [
-        .east: { (t: Tile) -> Tile in (t.x - 1, t.y) },
-        .west: { (t: Tile) -> Tile in (t.x + 1, t.y) },
-        .north: { (t: Tile) -> Tile in (t.x, t.y - 1) },
-        .south: { (t: Tile) -> Tile in (t.x, t.y + 1) },
-        .northEast: { (t: Tile) -> Tile in (t.x - 1, t.y - 1) },
-        .southWest: { (t: Tile) -> Tile in (t.x + 1, t.y + 1) },
-        .northWest: { (t: Tile) -> Tile in (t.x + 1, t.y - 1) },
-        Compass.southEast: { (t: Tile) -> Tile in (t.x - 1, t.y + 1) },
+    static func create(tile: Tile, canTrace: (Tile) -> Bool, _ history: inout TileSet) -> Tracer? {
+        return canTrace(tile) && !canTrace((tile.x - 1, tile.y)) && (!canTrace((tile.x - 1, tile.y + 1)) || canTrace((tile.x, tile.y + 1))) ? Tracer(tile: tile, &history) : nil
+    }
+
+    private let tileAtCompass: [Compass : (Tile) -> Tile] = [
+        .east: { (t: Tile) -> Tile in (t.x + 1, t.y) },
+        .west: { (t: Tile) -> Tile in (t.x - 1, t.y) },
+        .north: { (t: Tile) -> Tile in (t.x, t.y + 1) },
+        .south: { (t: Tile) -> Tile in (t.x, t.y - 1) },
+        .northEast: { (t: Tile) -> Tile in (t.x + 1, t.y + 1) },
+        .southWest: { (t: Tile) -> Tile in (t.x - 1, t.y - 1) },
+        .northWest: { (t: Tile) -> Tile in (t.x - 1, t.y + 1) },
+        .southEast: { (t: Tile) -> Tile in (t.x + 1, t.y - 1) },
     ]
 
     var contour: Contour? {
         // verify tracer is on its initial tile and compass
-        guard let first = self.tiles.first, let last = self.tiles.last, self.tile.x == first.x && self.tile.y == first.y && self.compass == .west else {
+        guard let first = self.tiles.first, let last = self.tiles.last, self.tile.x == first.x && self.tile.y == first.y && self.compass == .east else {
             return nil
         }
 
@@ -37,15 +41,11 @@ struct Tracer {
         return (self.tiles, (x, y), area)
     }
 
-    private var tile: Tile, compass = Compass.west
+    private var tile: Tile, compass = Compass.east
     private var tiles = [Tile](), sumX = 0, sumY = 0, sumArea = 0
 
-    init?(_ tile: Tile, _ canTrace: (Tile) -> Bool, _ history: inout TileSet) {
+    private init(tile: Tile, _ history: inout TileSet) {
         self.tile = tile
-
-        // verify a contour trace can begin at this tile
-        guard canTrace(self.tile) && !canTrace(self.tileAt(.rear)) && (!canTrace(self.tileAt(.leftRear)) || canTrace(self.tileAt(.left))) else { return nil }
-
         self.updateContour(&history)
     }
 

@@ -17,7 +17,7 @@ public struct ContourTracer {
             for col in 0..<size.width {
                 // verify tile was not in a previously traced contour and can initialize a tracer
                 let tile: Tile = (x: col, y: row)
-                guard !history.contains(tile), var tracer = Tracer(tile, canTrace, &history) else { continue }
+                guard !history.contains(tile), var tracer = Tracer.create(tile: tile, canTrace: canTrace, &history) else { continue }
 
                 // start tracing
                 while true {
