@@ -1,4 +1,4 @@
-# ContourTracer
+# Contour Tracer
 
 >Seo, J.; Chae, S.; Shim, J.; Kim, D.; Cheong, C.; Han, T.-D. Fast Contour-Tracing Algorithm Based on a Pixel-Following Method for Image Sensors. Sensors 2016, 16, 353.
 
