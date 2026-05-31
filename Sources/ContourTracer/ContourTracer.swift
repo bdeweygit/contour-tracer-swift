@@ -1,59 +1,90 @@
+public import CoreGraphics
+
+/// A row index in the tessellation grid.
 public typealias Row = Int
-public typealias Tile = (x: Int, y: Int)
+
+/// A coordinate pair representing a tile position in the tessellation grid.
+/// The row increases downward, column increases rightward (zero-indexed).
+public typealias Tile = (row: Int, col: Int)
+
+/// The dimensions of a tessellation grid as (width, height) in tile units.
 public typealias TessellationSize = (width: Int, height: Int)
-public typealias Contour = (tiles: [Tile], centroid: (x: Double, y: Double), area: Double)
 
-public struct ContourTracer {
-    public static func trace(size: TessellationSize, canTrace: (Tile) -> Bool, shouldScan: (Row) -> Bool, shouldContinueAfterTracing: (Contour) -> Bool) {
-        guard size.width > 0 && size.height > 0 else { return }
+/// Callback result that determines whether to continue scanning for additional contours.
+/// - `true`: Continue scanning for more contours.
+/// - `false`: Stop scanning and return.
+public typealias ContinueScan = Bool
 
-        // record traced tiles to avoid tracing the same contour more than once
-        var history = TileSet(tessellationWidth: size.width)
+/// A contour tracer that implements the pixel-following algorithm for shape boundary detection.
+///
+/// This tracer systematically scans a tessellation grid to identify and trace the boundaries
+/// of shapes using the two-stage pixel-following algorithm from "Fast Contour-Tracing Algorithm
+/// Based on a Pixel-Following Method for Image Sensors" (Sensors 2016). It provides
+/// flexible control over scanning and early termination through callback functions.
+public enum ContourTracer {
 
-        // scan the tessellation tiles
-        for row in 0..<size.height {
-            // verify row should be scanned
-            guard shouldScan(row) else { continue }
-            for col in 0..<size.width {
-                // verify tile was not in a previously traced contour and can initialize a tracer
-                let tile: Tile = (x: col, y: row)
-                guard !history.contains(tile), var tracer = Tracer.create(tile: tile, canTrace: canTrace, &history) else { continue }
+  // MARK: - Tracing
 
-                // start tracing
-                while true {
-                    // first stage
-                    if canTrace(tracer.tileAt(.leftRear)) {
-                        if canTrace(tracer.tileAt(.left)) {
-                            tracer.move(.left, andRotate: .left, &history)
-                            tracer.move(.left, andRotate: .left, &history)
-                        } else {
-                            tracer.move(.leftRear, andRotate: .rear, &history)
-                        }
-                    } else if canTrace(tracer.tileAt(.left)) {
-                        tracer.move(.left, andRotate: .left, &history)
-                    }
+  /// Traces contours in a tessellation, calling back with each discovered shape.
+  /// - Parameters:
+  ///   - size: The dimensions of the tessellation grid.
+  ///   - canTrace: Function to determine if a tile in the tessellation can be traced.
+  ///   - shouldScan: Function to determine if a row in the tessellation should be scanned.
+  ///   - onContourTraced: Function called with each discovered contour's CGPath; return false to stop scanning.
+  public static func trace(
+    size: TessellationSize,
+    canTrace: (Tile) -> Bool,
+    shouldScan: (Row) -> Bool,
+    onContourTraced: (CGPath) -> ContinueScan
+  ) {
+    guard size.width > 0 && size.height > 0 else { return }
 
-                    // second stage
-                    if canTrace(tracer.tileAt(.frontLeft)) {
-                        if canTrace(tracer.tileAt(.front)) {
-                            tracer.move(.front, andRotate: .left, &history)
-                            tracer.move(.front, andRotate: .right, &history)
-                        } else {
-                           tracer.move(.frontLeft, andRotate: nil, &history)
-                        }
-                    } else if canTrace(tracer.tileAt(.front)) {
-                        tracer.move(.front, andRotate: .right, &history)
-                    } else {
-                        tracer.move(nil, andRotate: .rear, &history)
-                    }
+    var history = TileSet(tessellationWidth: size.width)
 
-                    if let contour = tracer.contour { // done tracing
-                        // verify scan should continue
-                        guard shouldContinueAfterTracing(contour) else { return }
-                        break
-                    }
-                }
+    for row in 0..<size.height {
+      guard shouldScan(row) else { continue }
+      for col in 0..<size.width {
+        let tile = (row: row, col: col)
+        guard !history.contains(tile),
+          var tracer = Tracer.make(tile: tile, size: size, canTrace: canTrace, &history)
+        else { continue }
+
+        // Two-stage pixel-following algorithm.
+        // Stage 1 queries left-rear and left directions, Stage 2 queries front-left and front.
+        while true {
+          // Stage 1: Query left-rear and left pixels
+          if let leftRearTile = tracer.tileAt(.leftRear), canTrace(leftRearTile) {
+            if let leftTile = tracer.tileAt(.left), canTrace(leftTile) {
+              tracer.move(.left, andRotate: .left, &history)
+              tracer.move(.left, andRotate: .left, &history)
+            } else {
+              tracer.move(.leftRear, andRotate: .rear, &history)
             }
+          } else if let leftTile = tracer.tileAt(.left), canTrace(leftTile) {
+            tracer.move(.left, andRotate: .left, &history)
+          }
+
+          // Stage 2: Query front-left and front pixels
+          if let frontLeftTile = tracer.tileAt(.frontLeft), canTrace(frontLeftTile) {
+            if let frontTile = tracer.tileAt(.front), canTrace(frontTile) {
+              tracer.move(.front, andRotate: .left, &history)
+              tracer.move(.front, andRotate: .right, &history)
+            } else {
+              tracer.move(.frontLeft, andRotate: nil, &history)
+            }
+          } else if let frontTile = tracer.tileAt(.front), canTrace(frontTile) {
+            tracer.move(.front, andRotate: .right, &history)
+          } else {
+            // No traceable pixels: rotate 180° to continue
+            tracer.move(nil, andRotate: .rear, &history)
+          }
+
+          if let contour = tracer.contour(canTrace: canTrace) {
+            guard onContourTraced(contour) else { return }
+            break
+          }
         }
+      }
     }
+  }
 }
